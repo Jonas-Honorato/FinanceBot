@@ -44,6 +44,8 @@ Pizza 38,50
 Gastei R$45 no supermercado
 resumo
 hoje
+periodo
+quando comecou
 categoria alimentacao
 meta 1000 alimentacao
 relatorio
@@ -52,6 +54,7 @@ relatorio
 ## Observacoes
 
 - O comando `relatorio` responde com um resumo textual no WhatsApp.
+- O comando `periodo` ou `quando comecou` informa a janela mensal usada para contar os gastos.
 - A resposta ao WhatsApp usa TwiML direto no webhook, entao nao precisa de `TWILIO_AUTH_TOKEN` para responder mensagens recebidas.
 - O plano gratuito do Render pode hibernar depois de alguns minutos sem trafego.
 - O Postgres gratuito do Render e indicado para teste e pode expirar; para dados permanentes, migre depois para um banco gratuito externo ou plano pago.

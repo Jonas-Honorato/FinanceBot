@@ -12,6 +12,15 @@ test('parses natural language transaction with BRL amount', () => {
   assert.equal(parsed.date, '2026-06-23');
 });
 
+test('parses food transaction with sushi keyword', () => {
+  const parsed = parseWhatsAppMessage('gastei 25 reais com sushi', '2026-06-23');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.type, 'transaction');
+  assert.equal(parsed.amount, 25);
+  assert.equal(parsed.category, 'Alimentação');
+});
+
 test('parses compact transport transaction', () => {
   const parsed = parseWhatsAppMessage('Uber 22 transporte');
 
@@ -27,6 +36,13 @@ test('parses budget command', () => {
   assert.equal(parsed.type, 'budget');
   assert.equal(parsed.amount, 1000);
   assert.equal(parsed.category, 'Alimentação');
+});
+
+test('parses period command', () => {
+  const parsed = parseWhatsAppMessage('quando começou');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.type, 'period');
 });
 
 test('returns friendly error without amount', () => {

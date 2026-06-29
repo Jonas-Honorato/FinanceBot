@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { query } from '../db/pool.js';
 import { parseWhatsAppMessage } from '../services/whatsappParser.js';
 import { formatCurrency, sendWhatsAppMessage } from '../services/whatsappSender.js';
-import { getMonthBounds, todayISO } from '../utils/date.js';
+import { formatDateBR, getMonthBounds, todayISO } from '../utils/date.js';
 
 function escapeXml(value) {
   return String(value)
@@ -50,6 +50,11 @@ async function createWhatsappUser(number, name = 'WhatsApp User') {
   return rows[0];
 }
 
+function buildPeriodInfo() {
+  const bounds = getMonthBounds();
+  return `Estou contando os gastos deste mês de ${formatDateBR(bounds.start)} até ${formatDateBR(bounds.displayEnd)}. O mês atual é ${String(bounds.month).padStart(2, '0')}/${bounds.year}.`;
+}
+
 async function buildMonthSummary(userId) {
   const bounds = getMonthBounds();
   const { rows } = await query(
@@ -57,7 +62,7 @@ async function buildMonthSummary(userId) {
      FROM transactions WHERE user_id = $1 AND date >= $2 AND date < $3`,
     [userId, bounds.start, bounds.end]
   );
-  return `Resumo do mês: ${formatCurrency(rows[0].total)} em ${rows[0].count} lançamento(s).`;
+  return `Resumo do mês (${formatDateBR(bounds.start)} a ${formatDateBR(bounds.displayEnd)}): ${formatCurrency(rows[0].total)} em ${rows[0].count} lançamento(s).`;
 }
 
 async function buildTodaySummary(userId) {
@@ -76,31 +81,79 @@ async function buildCategorySummary(userId, category) {
      FROM transactions WHERE user_id = $1 AND category = $2 AND date >= $3 AND date < $4`,
     [userId, category, bounds.start, bounds.end]
   );
-  return `${category} no mês: ${formatCurrency(rows[0].total)}.`;
+  return `${category} no mês (${formatDateBR(bounds.start)} a ${formatDateBR(bounds.displayEnd)}): ${formatCurrency(rows[0].total)}.`;
 }
 
 async function buildTextReport(userId) {
   const bounds = getMonthBounds();
-  const { rows } = await query(
-    `SELECT category, COALESCE(SUM(amount), 0)::float total, COUNT(*)::int count
-     FROM transactions
-     WHERE user_id = $1 AND date >= $2 AND date < $3
-     GROUP BY category
-     ORDER BY total DESC`,
-    [userId, bounds.start, bounds.end]
+  const today = todayISO();
+  const elapsedDays = Math.max(
+    1,
+    Math.min(bounds.daysInMonth, new Date(today).getUTCDate())
   );
 
-  if (!rows.length) {
-    return 'Relatório do mês: ainda não há lançamentos.';
+  const [{ rows: totals }, { rows: categories }, { rows: budgets }] = await Promise.all([
+    query(
+      `SELECT COALESCE(SUM(amount), 0)::float total, COUNT(*)::int count
+       FROM transactions
+       WHERE user_id = $1 AND date >= $2 AND date < $3`,
+      [userId, bounds.start, bounds.end]
+    ),
+    query(
+      `SELECT category, COALESCE(SUM(amount), 0)::float total, COUNT(*)::int count
+       FROM transactions
+       WHERE user_id = $1 AND date >= $2 AND date < $3
+       GROUP BY category
+       ORDER BY total DESC`,
+      [userId, bounds.start, bounds.end]
+    ),
+    query(
+      `SELECT b.category,
+              b.limit_amount::float limit_amount,
+              COALESCE(SUM(t.amount), 0)::float spent
+       FROM budgets b
+       LEFT JOIN transactions t
+         ON t.user_id = b.user_id
+        AND t.category = b.category
+        AND t.date >= $4
+        AND t.date < $5
+       WHERE b.user_id = $1 AND b.month = $2 AND b.year = $3
+       GROUP BY b.category, b.limit_amount
+       ORDER BY spent DESC`,
+      [userId, bounds.month, bounds.year, bounds.start, bounds.end]
+    )
+  ]);
+
+  const total = Number(totals[0].total);
+  const count = Number(totals[0].count);
+
+  if (!count) {
+    return `Análise mensal (${formatDateBR(bounds.start)} a ${formatDateBR(bounds.displayEnd)}): ainda não há lançamentos. Envie algo como "sushi 25" para começar.`;
   }
 
-  const total = rows.reduce((sum, row) => sum + Number(row.total), 0);
-  const categories = rows
-    .slice(0, 5)
-    .map((row) => `${row.category}: ${formatCurrency(row.total)} em ${row.count} lançamento(s)`)
+  const averagePerDay = total / elapsedDays;
+  const projectedTotal = averagePerDay * bounds.daysInMonth;
+  const topCategory = categories[0];
+  const categoryText = categories
+    .slice(0, 4)
+    .map((row) => `${row.category}: ${formatCurrency(row.total)} (${row.count}x)`)
     .join('; ');
 
-  return `Relatório do mês: ${formatCurrency(total)} no total. ${categories}.`;
+  const budgetAlerts = budgets
+    .filter((row) => Number(row.limit_amount) > 0)
+    .slice(0, 3)
+    .map((row) => {
+      const spent = Number(row.spent);
+      const limit = Number(row.limit_amount);
+      const percent = Math.round((spent / limit) * 100);
+      return `${row.category}: ${percent}% da meta (${formatCurrency(spent)} de ${formatCurrency(limit)})`;
+    });
+
+  const budgetText = budgetAlerts.length
+    ? ` Metas: ${budgetAlerts.join('; ')}.`
+    : ' Nenhuma meta definida neste mês. Exemplo: meta 1000 alimentação.';
+
+  return `Análise mensal (${formatDateBR(bounds.start)} a ${formatDateBR(bounds.displayEnd)}): ${formatCurrency(total)} em ${count} lançamento(s). Média diária: ${formatCurrency(averagePerDay)}. Projeção até o fim do mês: ${formatCurrency(projectedTotal)}. Maior categoria: ${topCategory.category} (${formatCurrency(topCategory.total)}). Categorias: ${categoryText}.${budgetText}`;
 }
 
 export async function handleWhatsAppWebhook(req, res) {
@@ -138,6 +191,8 @@ export async function handleWhatsAppWebhook(req, res) {
     reply = await buildMonthSummary(user.id);
   } else if (parsed.type === 'hoje') {
     reply = await buildTodaySummary(user.id);
+  } else if (parsed.type === 'period') {
+    reply = buildPeriodInfo();
   } else if (parsed.type === 'category-summary') {
     reply = await buildCategorySummary(user.id, parsed.category);
   } else if (parsed.type === 'budget') {
