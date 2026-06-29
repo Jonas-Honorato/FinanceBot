@@ -3,7 +3,7 @@ services:
     name: financebot-api
     runtime: node
     rootDir: backend
-    plan: starter
+    plan: free
     buildCommand: npm install
     preDeployCommand: npm run migrate
     startCommand: npm start
@@ -30,4 +30,4 @@ databases:
   - name: financebot-db
     databaseName: financebot
     user: financebot
-    plan: basic-256mb
+    plan: free

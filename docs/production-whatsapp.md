@@ -1,22 +1,26 @@
-# FinanceBot API 24h no WhatsApp
+# FinanceBot API gratuita/teste no WhatsApp
 
 Este modo publica somente o backend da API, sem depender da dashboard web.
 
-## Arquitetura recomendada
+## Arquitetura de teste gratuita
 
-- Render Web Service: roda `backend` 24h.
-- Render PostgreSQL: guarda usuários, transações, metas e logs.
-- Twilio WhatsApp Sandbox: chama o webhook público da API.
+- Render Web Service no plano Free: roda `backend`, mas pode hibernar quando ficar sem acessos.
+- Render PostgreSQL no plano Free: guarda usuarios, transacoes, metas e logs durante o periodo gratuito/teste.
+- Twilio WhatsApp Sandbox: chama o webhook publico da API.
+
+Este modo e suficiente para validar o bot sem pagar agora. Depois de hibernar,
+a primeira mensagem pode demorar ou falhar porque o servico precisa acordar.
 
 ## Deploy no Render
 
-1. Suba este repositório para o GitHub.
-2. No Render, crie um novo **Blueprint** apontando para o repositório.
+1. Suba este repositorio para o GitHub.
+2. No Render, crie um novo **Blueprint** apontando para o repositorio.
 3. O arquivo `render.yaml` cria:
    - `financebot-api`
    - `financebot-db`
-4. Aguarde o deploy concluir.
-5. Copie a URL pública do serviço, por exemplo:
+4. Confirme que ambos estao usando o plano **Free**.
+5. Aguarde o deploy concluir.
+6. Copie a URL publica do servico, por exemplo:
 
 ```text
 https://financebot-api.onrender.com
@@ -31,7 +35,7 @@ When a message comes in: https://SUA-URL-RENDER/api/webhook/whatsapp
 Method: POST
 ```
 
-Depois entre no sandbox pelo WhatsApp enviando o código `join ...` exibido pela Twilio.
+Depois entre no sandbox pelo WhatsApp enviando o codigo `join ...` exibido pela Twilio.
 
 ## Comandos do bot
 
@@ -40,13 +44,15 @@ Pizza 38,50
 Gastei R$45 no supermercado
 resumo
 hoje
-categoria alimentação
-meta 1000 alimentação
-relatório
+categoria alimentacao
+meta 1000 alimentacao
+relatorio
 ```
 
-## Observações
+## Observacoes
 
-- O comando `relatório` responde com um resumo textual no WhatsApp.
-- A resposta ao WhatsApp usa TwiML direto no webhook, então não precisa de `TWILIO_AUTH_TOKEN` para responder mensagens recebidas.
-- Para uso 24h real, evite planos que hibernam o serviço.
+- O comando `relatorio` responde com um resumo textual no WhatsApp.
+- A resposta ao WhatsApp usa TwiML direto no webhook, entao nao precisa de `TWILIO_AUTH_TOKEN` para responder mensagens recebidas.
+- O plano gratuito do Render pode hibernar depois de alguns minutos sem trafego.
+- O Postgres gratuito do Render e indicado para teste e pode expirar; para dados permanentes, migre depois para um banco gratuito externo ou plano pago.
+- Para uso 24h real, evite planos que hibernam o servico.
