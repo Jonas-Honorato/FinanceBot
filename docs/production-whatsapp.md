@@ -42,6 +42,8 @@ Depois entre no sandbox pelo WhatsApp enviando o codigo `join ...` exibido pela 
 ```text
 Pizza 38,50
 Gastei R$45 no supermercado
+ajuda
+comandos
 resumo
 hoje
 periodo
@@ -53,6 +55,7 @@ relatorio
 
 ## Observacoes
 
+- O comando `ajuda`, `comandos` ou `menu` lista os comandos principais no WhatsApp.
 - O comando `relatorio` responde com um resumo textual no WhatsApp.
 - O comando `periodo` ou `quando comecou` informa a janela mensal usada para contar os gastos.
 - A resposta ao WhatsApp usa TwiML direto no webhook, entao nao precisa de `TWILIO_AUTH_TOKEN` para responder mensagens recebidas.

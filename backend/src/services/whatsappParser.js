@@ -2,6 +2,7 @@ import { CATEGORIES, CATEGORY_KEYWORDS } from '../config/categories.js';
 import { todayISO } from '../utils/date.js';
 
 const COMMANDS = ['resumo', 'hoje', 'relatório', 'relatorio'];
+const HELP_COMMANDS = ['ajuda', 'comandos', 'menu', 'help'];
 const PERIOD_COMMANDS = [
   'periodo',
   'período',
@@ -81,6 +82,10 @@ export function parseWhatsAppMessage(message, baseDate = todayISO()) {
 
   const trimmed = message.trim();
   const normalized = normalizeText(trimmed);
+
+  if (HELP_COMMANDS.includes(normalized)) {
+    return { ok: true, type: 'help', command: normalized };
+  }
 
   if (PERIOD_COMMANDS.includes(normalized)) {
     return { ok: true, type: 'period', command: normalized };

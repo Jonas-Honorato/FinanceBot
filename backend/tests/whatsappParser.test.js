@@ -52,6 +52,13 @@ test('parses period command', () => {
   assert.equal(parsed.type, 'period');
 });
 
+test('parses help command', () => {
+  const parsed = parseWhatsAppMessage('comandos');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.type, 'help');
+});
+
 test('returns friendly error without amount', () => {
   const parsed = parseWhatsAppMessage('almoço no restaurante');
 

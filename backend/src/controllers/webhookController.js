@@ -50,6 +50,20 @@ async function createWhatsappUser(number, name = 'WhatsApp User') {
   return rows[0];
 }
 
+function buildHelpMessage() {
+  return [
+    'Comandos do FinanceBot:',
+    'Registrar gasto: "sushi 25" ou "gastei R$45 no mercado".',
+    'Resumo do mês: resumo.',
+    'Análise mensal: relatorio.',
+    'Gastos de hoje: hoje.',
+    'Período da contagem: periodo.',
+    'Categoria específica: categoria alimentacao.',
+    'Definir meta: meta 1000 alimentacao.',
+    'Ver comandos: ajuda.'
+  ].join('\n');
+}
+
 function buildPeriodInfo() {
   const bounds = getMonthBounds();
   return `Estou contando os gastos deste mês de ${formatDateBR(bounds.start)} até ${formatDateBR(bounds.displayEnd)}. O mês atual é ${String(bounds.month).padStart(2, '0')}/${bounds.year}.`;
@@ -180,6 +194,8 @@ export async function handleWhatsAppWebhook(req, res) {
   if (!parsed.ok) {
     status = 'parse_error';
     reply = parsed.message;
+  } else if (parsed.type === 'help') {
+    reply = buildHelpMessage();
   } else if (parsed.type === 'transaction') {
     await query(
       `INSERT INTO transactions (user_id, amount, category, description, date, created_via)
