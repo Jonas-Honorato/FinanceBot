@@ -38,6 +38,16 @@ function parseAmount(message) {
   };
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasKeyword(normalizedMessage, keyword) {
+  const normalizedKeyword = normalizeText(keyword);
+  const pattern = new RegExp(`(^|[^a-z0-9])${escapeRegExp(normalizedKeyword)}([^a-z0-9]|$)`, 'i');
+  return pattern.test(normalizedMessage);
+}
+
 function inferCategory(message) {
   const normalized = normalizeText(message);
 
@@ -48,7 +58,7 @@ function inferCategory(message) {
   }
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some((keyword) => normalized.includes(normalizeText(keyword)))) {
+    if (keywords.some((keyword) => hasKeyword(normalized, keyword))) {
       return category;
     }
   }

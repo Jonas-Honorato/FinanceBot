@@ -21,6 +21,13 @@ test('parses food transaction with sushi keyword', () => {
   assert.equal(parsed.category, 'Alimentação');
 });
 
+test('does not infer housing from gas inside gastei', () => {
+  const parsed = parseWhatsAppMessage('gastei 25 reais', '2026-06-23');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.category, 'Outros');
+});
+
 test('parses compact transport transaction', () => {
   const parsed = parseWhatsAppMessage('Uber 22 transporte');
 
