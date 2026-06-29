@@ -54,6 +54,9 @@ function buildHelpMessage() {
   return [
     'Comandos do FinanceBot:',
     'Registrar gasto: "sushi 25" ou "gastei R$45 no mercado".',
+    'Últimos gastos: ultimos.',
+    'Apagar último gasto: apagar ultimo.',
+    'Corrigir categoria do último: corrigir ultimo alimentacao.',
     'Resumo do mês: resumo.',
     'Análise mensal: relatorio.',
     'Gastos de hoje: hoje.',
@@ -62,6 +65,11 @@ function buildHelpMessage() {
     'Definir meta: meta 1000 alimentacao.',
     'Ver comandos: ajuda.'
   ].join('\n');
+}
+
+function formatTransactionLine(transaction, index = null) {
+  const prefix = index === null ? '' : `${index}. `;
+  return `${prefix}${formatDateBR(transaction.date)} - ${formatCurrency(transaction.amount)} em ${transaction.category} (${transaction.description || 'sem descrição'})`;
 }
 
 function buildPeriodInfo() {
@@ -96,6 +104,68 @@ async function buildCategorySummary(userId, category) {
     [userId, category, bounds.start, bounds.end]
   );
   return `${category} no mês (${formatDateBR(bounds.start)} a ${formatDateBR(bounds.displayEnd)}): ${formatCurrency(rows[0].total)}.`;
+}
+
+async function buildRecentTransactions(userId) {
+  const { rows } = await query(
+    `SELECT id, amount::float amount, category, description, date
+     FROM transactions
+     WHERE user_id = $1
+     ORDER BY created_at DESC
+     LIMIT 5`,
+    [userId]
+  );
+
+  if (!rows.length) {
+    return 'Você ainda não tem lançamentos. Envie algo como "sushi 25" para registrar o primeiro.';
+  }
+
+  return `Últimos lançamentos:\n${rows.map((row, index) => formatTransactionLine(row, index + 1)).join('\n')}`;
+}
+
+async function deleteLastTransaction(userId) {
+  const { rows } = await query(
+    `SELECT id, amount::float amount, category, description, date
+     FROM transactions
+     WHERE user_id = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId]
+  );
+
+  const transaction = rows[0];
+  if (!transaction) {
+    return 'Não encontrei nenhum lançamento para apagar.';
+  }
+
+  await query('DELETE FROM transactions WHERE id = $1 AND user_id = $2', [transaction.id, userId]);
+  return `Apaguei o último lançamento: ${formatTransactionLine(transaction)}.`;
+}
+
+async function correctLastTransactionCategory(userId, category) {
+  const { rows } = await query(
+    `SELECT id, amount::float amount, category, description, date
+     FROM transactions
+     WHERE user_id = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId]
+  );
+
+  const transaction = rows[0];
+  if (!transaction) {
+    return 'Não encontrei nenhum lançamento para corrigir.';
+  }
+
+  const { rows: updatedRows } = await query(
+    `UPDATE transactions
+     SET category = $1, updated_at = NOW()
+     WHERE id = $2 AND user_id = $3
+     RETURNING id, amount::float amount, category, description, date`,
+    [category, transaction.id, userId]
+  );
+
+  return `Corrigi o último lançamento de ${transaction.category} para ${category}: ${formatTransactionLine(updatedRows[0])}.`;
 }
 
 async function buildTextReport(userId) {
@@ -196,6 +266,12 @@ export async function handleWhatsAppWebhook(req, res) {
     reply = parsed.message;
   } else if (parsed.type === 'help') {
     reply = buildHelpMessage();
+  } else if (parsed.type === 'last-transactions') {
+    reply = await buildRecentTransactions(user.id);
+  } else if (parsed.type === 'delete-last-transaction') {
+    reply = await deleteLastTransaction(user.id);
+  } else if (parsed.type === 'correct-last-category') {
+    reply = await correctLastTransactionCategory(user.id, parsed.category);
   } else if (parsed.type === 'transaction') {
     await query(
       `INSERT INTO transactions (user_id, amount, category, description, date, created_via)

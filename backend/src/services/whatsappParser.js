@@ -3,6 +3,8 @@ import { todayISO } from '../utils/date.js';
 
 const COMMANDS = ['resumo', 'hoje', 'relatório', 'relatorio'];
 const HELP_COMMANDS = ['ajuda', 'comandos', 'menu', 'help'];
+const LAST_COMMANDS = ['ultimos', 'últimos', 'ultimas', 'últimas', 'extrato'];
+const DELETE_LAST_COMMANDS = ['apagar ultimo', 'apagar último', 'deletar ultimo', 'deletar último', 'excluir ultimo', 'excluir último', 'desfazer'];
 const PERIOD_COMMANDS = [
   'periodo',
   'período',
@@ -85,6 +87,19 @@ export function parseWhatsAppMessage(message, baseDate = todayISO()) {
 
   if (HELP_COMMANDS.includes(normalized)) {
     return { ok: true, type: 'help', command: normalized };
+  }
+
+  if (LAST_COMMANDS.includes(normalized)) {
+    return { ok: true, type: 'last-transactions', command: normalized };
+  }
+
+  if (DELETE_LAST_COMMANDS.includes(normalized)) {
+    return { ok: true, type: 'delete-last-transaction', command: normalized };
+  }
+
+  const correctLastCommand = normalized.match(/^corrigir\s+ultim[oa]\s+(?:para\s+)?(.+)$/);
+  if (correctLastCommand) {
+    return { ok: true, type: 'correct-last-category', category: inferCategory(correctLastCommand[1]) };
   }
 
   if (PERIOD_COMMANDS.includes(normalized)) {

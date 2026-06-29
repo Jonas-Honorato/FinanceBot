@@ -59,6 +59,28 @@ test('parses help command', () => {
   assert.equal(parsed.type, 'help');
 });
 
+test('parses last transactions command', () => {
+  const parsed = parseWhatsAppMessage('ultimos');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.type, 'last-transactions');
+});
+
+test('parses delete last transaction command', () => {
+  const parsed = parseWhatsAppMessage('apagar ultimo');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.type, 'delete-last-transaction');
+});
+
+test('parses correct last category command', () => {
+  const parsed = parseWhatsAppMessage('corrigir ultimo alimentacao');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.type, 'correct-last-category');
+  assert.equal(parsed.category, 'Alimentação');
+});
+
 test('returns friendly error without amount', () => {
   const parsed = parseWhatsAppMessage('almoço no restaurante');
 
