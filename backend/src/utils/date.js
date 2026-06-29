@@ -13,6 +13,7 @@ export function todayISO() {
 }
 
 export function formatDateBR(date) {
-  const [year, month, day] = String(date).slice(0, 10).split('-');
+  const isoDate = date instanceof Date ? date.toISOString().slice(0, 10) : String(date).slice(0, 10);
+  const [year, month, day] = isoDate.split('-');
   return `${day}/${month}/${year}`;
 }
