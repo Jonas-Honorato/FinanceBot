@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.local
+.DS_Store
+.idea/
+npm-debug.log*
+*.log
+backend/uploads/
+backend/data/
+backend/.tmp-*/
+backend/*.log
+frontend/*.log
+frontend/.vite/

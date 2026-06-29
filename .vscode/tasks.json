@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "FinanceBot: start dev",
+      "type": "shell",
+      "command": ".\\scripts\\start-dev.ps1",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "FinanceBot: stop dev",
+      "type": "shell",
+      "command": ".\\scripts\\stop-dev.ps1",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "FinanceBot: start public API tunnel",
+      "type": "shell",
+      "command": ".\\scripts\\start-tunnel.ps1",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "FinanceBot: stop public API tunnel",
+      "type": "shell",
+      "command": ".\\scripts\\stop-tunnel.ps1",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: test",
+      "type": "shell",
+      "command": "npm test",
+      "options": {
+        "cwd": "${workspaceFolder}\\backend"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: build",
+      "type": "shell",
+      "command": "npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}\\frontend"
+      },
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
