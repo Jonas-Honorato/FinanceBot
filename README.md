@@ -90,11 +90,40 @@ Consulte `.env.example`. As principais são:
 - `JWT_SECRET`: segredo para assinar tokens.
 - `FRONTEND_URL`: origem permitida no CORS.
 - `PUBLIC_DASHBOARD_URL`: link enviado no comando `relatório`.
+- `WHATSAPP_PROVIDER`: `mock`, `twilio` ou `meta`.
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`: credenciais Twilio.
+- `META_WHATSAPP_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`: credenciais e token de verificacao da Meta Cloud API.
 
-Sem credenciais Twilio, o backend usa modo mock e imprime as respostas no console.
+Com `WHATSAPP_PROVIDER=mock`, o backend imprime as respostas no console sem enviar mensagens reais.
 
-## Configurando WhatsApp com Twilio
+## Configurando WhatsApp
+
+O backend usa uma camada de provider para alternar entre Twilio, Meta Cloud API e mock local sem mudar a regra de negocio.
+
+Para validar com usuarios reais, prefira `WHATSAPP_PROVIDER=meta` com a WhatsApp Cloud API oficial da Meta. O Twilio continua util como sandbox rapido.
+
+### Meta WhatsApp Cloud API
+
+Configure no `.env`:
+
+```powershell
+.\scripts\configure-meta-whatsapp.ps1 `
+  -MetaWhatsappToken "seu_token" `
+  -MetaPhoneNumberId "seu_phone_number_id" `
+  -MetaVerifyToken "um_token_de_verificacao_criado_por_voce" `
+  -PublicDashboardUrl "https://sua-url-publica"
+```
+
+No painel da Meta, configure:
+
+```text
+Callback URL: https://sua-api.com/api/webhook/whatsapp
+Verify token: o mesmo valor de META_VERIFY_TOKEN
+```
+
+O endpoint `GET /api/webhook/whatsapp` faz a verificacao da Meta e `POST /api/webhook/whatsapp` recebe mensagens.
+
+### Twilio
 
 1. Crie uma conta no Twilio e ative o WhatsApp Sandbox.
 2. Configure suas credenciais locais:
@@ -124,9 +153,14 @@ whatsapp:+5561998392309
 ```text
 Gastei R$45 no supermercado
 resumo
+resumo da semana
+resumo de junho
 hoje
 categoria alimentação
 meta 1000 alimentação
+quero juntar 3000 em 6 meses
+minhas metas
+quanto posso gastar essa semana
 relatório
 ```
 
@@ -141,6 +175,7 @@ Para testar sem Twilio, use o simulador local:
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `GET /api/webhook/whatsapp`
 - `POST /api/webhook/whatsapp`
 - `GET /api/transactions`
 - `POST /api/transactions`
@@ -149,8 +184,11 @@ Para testar sem Twilio, use o simulador local:
 - `GET /api/summary/monthly`
 - `GET /api/summary/by-category`
 - `GET /api/summary/daily`
+- `GET /api/summary/spending-plan`
 - `GET /api/budgets`
 - `POST /api/budgets`
+- `GET /api/goals`
+- `POST /api/goals`
 - `GET /api/reports/monthly`
 - `GET /api/reports/export-csv`
 

@@ -3,6 +3,7 @@ import { todayISO } from '../utils/date.js';
 
 const COMMANDS = ['resumo', 'hoje', 'relatório', 'relatorio'];
 const HELP_COMMANDS = ['ajuda', 'comandos', 'menu', 'help'];
+const INCOME_WORDS = ['recebi', 'ganhei', 'entrou', 'caiu', 'salario', 'salÃ¡rio', 'freela', 'freelance', 'reembolso', 'bonus', 'bÃ´nus'];
 const LAST_COMMANDS = ['ultimos', 'últimos', 'ultimas', 'últimas', 'extrato'];
 const DELETE_LAST_COMMANDS = ['apagar ultimo', 'apagar último', 'deletar ultimo', 'deletar último', 'excluir ultimo', 'excluir último', 'desfazer'];
 const PERIOD_COMMANDS = [
@@ -20,6 +21,26 @@ const PERIOD_COMMANDS = [
   'quando comeca',
   'desde quando'
 ];
+const MONTH_NAMES = {
+  janeiro: 1,
+  fevereiro: 2,
+  marco: 3,
+  abril: 4,
+  maio: 5,
+  junho: 6,
+  julho: 7,
+  agosto: 8,
+  setembro: 9,
+  outubro: 10,
+  novembro: 11,
+  dezembro: 12
+};
+
+function addMonthsISO(baseDate, months) {
+  const date = new Date(`${baseDate}T00:00:00.000Z`);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return date.toISOString().slice(0, 10);
+}
 
 function normalizeText(text) {
   return text
@@ -54,6 +75,10 @@ function hasKeyword(normalizedMessage, keyword) {
 function inferCategory(message) {
   const normalized = normalizeText(message);
 
+  if (INCOME_WORDS.some((word) => hasKeyword(normalized, word))) {
+    return hasKeyword(normalized, 'salario') ? 'SalÃ¡rio' : 'Receita';
+  }
+
   for (const category of CATEGORIES) {
     if (normalizeText(category) === normalized || normalized.includes(normalizeText(category))) {
       return category;
@@ -72,9 +97,36 @@ function inferCategory(message) {
 function cleanDescription(message, amountRaw) {
   return message
     .replace(amountRaw, '')
-    .replace(/\b(gastei|paguei|comprei|no|na|em|com|de|para)\b/gi, ' ')
+    .replace(/\b(gastei|paguei|comprei|recebi|ganhei|entrou|caiu|no|na|em|com|de|para)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function inferTransactionType(message) {
+  const normalized = normalizeText(message);
+  return INCOME_WORDS.some((word) => hasKeyword(normalized, word)) ? 'income' : 'expense';
+}
+
+function parsePeriodSummary(normalized, baseDate) {
+  const year = new Date(`${baseDate}T00:00:00.000Z`).getUTCFullYear();
+
+  if (/^(resumo|relatorio|relatório)\s+(da\s+)?semana(l)?$/.test(normalized)) {
+    return { ok: true, type: 'period-summary', period: 'week', command: normalized };
+  }
+
+  const monthMatch = normalized.match(/^(resumo|relatorio|relatório)\s+(de\s+)?([a-z]+)(?:\s+(\d{4}))?$/);
+  if (monthMatch && MONTH_NAMES[monthMatch[3]]) {
+    return {
+      ok: true,
+      type: 'period-summary',
+      period: 'month',
+      month: MONTH_NAMES[monthMatch[3]],
+      year: monthMatch[4] ? Number(monthMatch[4]) : year,
+      command: normalized
+    };
+  }
+
+  return null;
 }
 
 export function parseWhatsAppMessage(message, baseDate = todayISO()) {
@@ -106,6 +158,31 @@ export function parseWhatsAppMessage(message, baseDate = todayISO()) {
     return { ok: true, type: 'period', command: normalized };
   }
 
+  const periodSummary = parsePeriodSummary(normalized, baseDate);
+  if (periodSummary) {
+    return periodSummary;
+  }
+
+  if (normalized === 'metas' || normalized === 'minhas metas' || normalized.includes('quanto falta para minha meta')) {
+    return { ok: true, type: 'goals-summary', command: normalized };
+  }
+
+  if (
+    normalized.includes('quanto posso gastar') ||
+    normalized.includes('quanto ainda posso gastar') ||
+    normalized.includes('posso gastar essa semana') ||
+    normalized.includes('limite da semana') ||
+    normalized.includes('limite semanal') ||
+    normalized.includes('disponivel no mes')
+  ) {
+    return {
+      ok: true,
+      type: 'spending-plan',
+      period: normalized.includes('semana') || normalized.includes('semanal') ? 'week' : 'month',
+      command: normalized
+    };
+  }
+
   if (COMMANDS.map(normalizeText).includes(normalized)) {
     return { ok: true, type: normalized.startsWith('relatorio') ? 'report' : normalized, command: normalized };
   }
@@ -130,6 +207,30 @@ export function parseWhatsAppMessage(message, baseDate = todayISO()) {
     };
   }
 
+  const goalCommand = normalized.match(/^(?:quero\s+)?(?:juntar|guardar|economizar)\s+(.+)$/);
+  if (goalCommand) {
+    const amount = parseAmount(goalCommand[1]);
+    const monthsMatch = normalized.match(/\bem\s+(\d{1,2})\s+m[eê]s(?:es)?\b/);
+
+    if (!amount) {
+      return { ok: false, type: 'error', message: 'Nao consegui identificar o valor da meta. Exemplo: "quero juntar 3000 em 6 meses".' };
+    }
+
+    if (!monthsMatch) {
+      return { ok: false, type: 'error', message: 'Nao consegui identificar o prazo da meta. Exemplo: "quero juntar 3000 em 6 meses".' };
+    }
+
+    const months = Number(monthsMatch[1]);
+    return {
+      ok: true,
+      type: 'goal',
+      title: 'Meta financeira',
+      amount: amount.value,
+      months,
+      deadline: addMonthsISO(baseDate, months)
+    };
+  }
+
   const amount = parseAmount(trimmed);
   if (!amount || !Number.isFinite(amount.value) || amount.value <= 0) {
     return {
@@ -141,10 +242,12 @@ export function parseWhatsAppMessage(message, baseDate = todayISO()) {
 
   const description = cleanDescription(trimmed, amount.raw);
   const category = inferCategory(trimmed);
+  const transactionType = inferTransactionType(trimmed);
 
   return {
     ok: true,
     type: 'transaction',
+    transactionType,
     amount: amount.value,
     category,
     description: description || category,

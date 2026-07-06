@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { handleWhatsAppWebhook } from '../controllers/webhookController.js';
+import { handleWhatsAppWebhook, verifyWhatsAppWebhook } from '../controllers/webhookController.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 
 export const webhookRoutes = Router();
@@ -12,4 +12,5 @@ const webhookLimiter = rateLimit({
   legacyHeaders: false
 });
 
+webhookRoutes.get('/whatsapp', verifyWhatsAppWebhook);
 webhookRoutes.post('/whatsapp', webhookLimiter, asyncHandler(handleWhatsAppWebhook));

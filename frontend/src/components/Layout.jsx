@@ -5,7 +5,8 @@ import { clearToken } from '../services/api.js';
 const nav = [
   { to: '/', label: 'Overview', icon: PieChart },
   { to: '/transactions', label: 'Transações', icon: ReceiptText },
-  { to: '/budgets', label: 'Metas', icon: Target },
+  { to: '/budgets', label: 'Limites', icon: Target },
+  { to: '/goals', label: 'Objetivos', icon: Target },
   { to: '/reports', label: 'Relatórios', icon: FileText }
 ];
 

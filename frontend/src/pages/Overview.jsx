@@ -12,6 +12,7 @@ export function Overview() {
   const byCategory = useApi('/api/summary/by-category', []);
   const daily = useApi('/api/summary/daily', []);
   const comparison = useApi('/api/summary/comparison', []);
+  const spendingPlan = useApi('/api/summary/spending-plan', []);
 
   const dailyData = (daily.data?.data || []).map((item) => ({
     ...item,
@@ -24,20 +25,21 @@ export function Overview() {
     total: dailyData.filter((item) => item.weekdayLabel === day).reduce((sum, item) => sum + Number(item.total), 0)
   }));
 
-  const weekTotal = weekData.reduce((sum, item) => sum + item.total, 0);
   const s = summary.data || {};
+  const plan = spendingPlan.data || {};
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total no mês" value={currency(s.total)} detail={`${s.count || 0} lançamento(s)`} tone="good" />
-        <StatCard title="Total na semana" value={currency(weekTotal)} detail="Calculado pelos registros do mês" />
-        <StatCard title="Maior gasto" value={currency(s.biggestTransaction?.amount || 0)} detail={s.biggestTransaction?.description || 'Sem lançamentos'} tone="danger" />
-        <StatCard title="Categoria líder" value={s.topCategory?.category || 'Sem dados'} detail={currency(s.topCategory?.total || 0)} />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard title="Receitas no mês" value={currency(s.incomeTotal)} detail={`${s.incomeCount || 0} entrada(s)`} tone="good" />
+        <StatCard title="Gastos no mês" value={currency(s.expenseTotal ?? s.total)} detail={`${s.expenseCount || 0} gasto(s)`} tone="danger" />
+        <StatCard title="Saldo do mês" value={currency(s.balance)} detail={`${s.count || 0} lançamento(s)`} tone={Number(s.balance || 0) >= 0 ? 'good' : 'danger'} />
+        <StatCard title="Limite semanal" value={currency(plan.weeklyLimit)} detail={`${plan.weeksRemaining || 0} semana(s) restantes`} tone="good" />
+        <StatCard title="Reserva para metas" value={currency(plan.monthlyGoalTotal)} detail={`${plan.activeGoalCount || 0} objetivo(s) ativo(s)`} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <ChartPanel title="Distribuição por categoria">
+        <ChartPanel title="Gastos por categoria">
           <ResponsiveContainer>
             <PieChart>
               <Pie data={byCategory.data?.data || []} dataKey="total" nameKey="category" innerRadius={64} outerRadius={96} paddingAngle={3}>
@@ -61,7 +63,7 @@ export function Overview() {
           </ResponsiveContainer>
         </ChartPanel>
 
-        <ChartPanel title="Evolução no mês">
+        <ChartPanel title="Evolução dos gastos no mês">
           <ResponsiveContainer>
             <LineChart data={dailyData}>
               <CartesianGrid stroke="#2a333b" />

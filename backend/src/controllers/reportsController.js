@@ -18,7 +18,7 @@ export async function monthlyReport(req, res) {
 export async function exportCsv(req, res) {
   const bounds = getMonthBounds(Number(req.query.month) || undefined, Number(req.query.year) || undefined);
   const { rows } = await query(
-    `SELECT date, category, description, amount
+    `SELECT date, type, category, description, amount
      FROM transactions WHERE user_id = $1 AND date >= $2 AND date < $3
      ORDER BY date DESC`,
     [req.user.id, bounds.start, bounds.end]

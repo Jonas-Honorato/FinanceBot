@@ -8,8 +8,9 @@ import { validate } from '../middlewares/validate.js';
 export const transactionsRoutes = Router();
 
 const transactionSchema = Joi.object({
+  type: Joi.string().valid('income', 'expense').default('expense'),
   amount: Joi.number().positive().precision(2).required(),
-  category: Joi.string().valid(...CATEGORIES).required(),
+  category: Joi.string().valid(...CATEGORIES, 'SalÃ¡rio', 'Receita').required(),
   description: Joi.string().max(280).allow('', null),
   date: Joi.date().iso().required(),
   createdVia: Joi.string().valid('manual', 'whatsapp').default('manual')

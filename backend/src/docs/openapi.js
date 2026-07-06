@@ -14,7 +14,10 @@ export const openApiSpec = {
   paths: {
     '/api/auth/register': { post: { summary: 'Cria uma conta de usuário' } },
     '/api/auth/login': { post: { summary: 'Autentica o usuário e retorna JWT' } },
-    '/api/webhook/whatsapp': { post: { summary: 'Recebe mensagens do WhatsApp via Twilio/Meta' } },
+    '/api/webhook/whatsapp': {
+      get: { summary: 'Verifica o webhook da WhatsApp Cloud API da Meta' },
+      post: { summary: 'Recebe mensagens do WhatsApp via Twilio, Meta Cloud API ou mock local' }
+    },
     '/api/transactions': {
       get: { summary: 'Lista transações com filtros', security: [{ bearerAuth: [] }] },
       post: { summary: 'Cria transação manual', security: [{ bearerAuth: [] }] }
@@ -22,9 +25,14 @@ export const openApiSpec = {
     '/api/summary/monthly': { get: { summary: 'Resumo mensal', security: [{ bearerAuth: [] }] } },
     '/api/summary/by-category': { get: { summary: 'Totais por categoria', security: [{ bearerAuth: [] }] } },
     '/api/summary/daily': { get: { summary: 'Totais por dia', security: [{ bearerAuth: [] }] } },
+    '/api/summary/spending-plan': { get: { summary: 'Calcula limite de gasto mensal, semanal e diario', security: [{ bearerAuth: [] }] } },
     '/api/budgets': {
       get: { summary: 'Lista metas', security: [{ bearerAuth: [] }] },
       post: { summary: 'Cria ou atualiza meta', security: [{ bearerAuth: [] }] }
+    },
+    '/api/goals': {
+      get: { summary: 'Lista metas financeiras', security: [{ bearerAuth: [] }] },
+      post: { summary: 'Cria meta financeira', security: [{ bearerAuth: [] }] }
     },
     '/api/reports/monthly': { get: { summary: 'Relatório mensal JSON/PDF', security: [{ bearerAuth: [] }] } },
     '/api/reports/export-csv': { get: { summary: 'Exporta CSV mensal', security: [{ bearerAuth: [] }] } }

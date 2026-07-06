@@ -8,7 +8,7 @@ export async function listBudgets(req, res) {
             COALESCE(SUM(t.amount), 0)::float spent
      FROM budgets b
      LEFT JOIN transactions t ON t.user_id = b.user_id
-      AND t.category = b.category AND t.date >= $3 AND t.date < $4
+      AND t.category = b.category AND t.type = 'expense' AND t.date >= $3 AND t.date < $4
      WHERE b.user_id = $1 AND b.month = $2 AND b.year = $5
      GROUP BY b.id
      ORDER BY b.category`,

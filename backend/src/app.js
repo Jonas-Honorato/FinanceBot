@@ -12,6 +12,7 @@ import { reportsRoutes } from './routes/reportsRoutes.js';
 import { summaryRoutes } from './routes/summaryRoutes.js';
 import { transactionsRoutes } from './routes/transactionsRoutes.js';
 import { webhookRoutes } from './routes/webhookRoutes.js';
+import { goalsRoutes } from './routes/goalsRoutes.js';
 import { openApiSpec } from './docs/openapi.js';
 
 export function createApp() {
@@ -39,6 +40,7 @@ export function createApp() {
   app.use('/api/transactions', requireAuth, transactionsRoutes);
   app.use('/api/summary', requireAuth, summaryRoutes);
   app.use('/api/budgets', requireAuth, budgetsRoutes);
+  app.use('/api/goals', requireAuth, goalsRoutes);
   app.use('/api/reports', requireAuth, reportsRoutes);
 
   app.use(errorHandler);

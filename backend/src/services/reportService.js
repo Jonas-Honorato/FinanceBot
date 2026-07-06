@@ -7,23 +7,37 @@ import { formatCurrency } from './whatsappSender.js';
 export async function buildMonthlyReport(userId, month, year) {
   const bounds = getMonthBounds(month, year);
   const { rows } = await query(
-    `SELECT category, description, amount, date
+    `SELECT type, category, description, amount, date
      FROM transactions
      WHERE user_id = $1 AND date >= $2 AND date < $3
      ORDER BY amount DESC`,
     [userId, bounds.start, bounds.end]
   );
 
-  const total = rows.reduce((sum, row) => sum + Number(row.amount), 0);
-  const topFive = rows.slice(0, 5);
+  const totalIncome = rows
+    .filter((row) => row.type === 'income')
+    .reduce((sum, row) => sum + Number(row.amount), 0);
+  const totalExpenses = rows
+    .filter((row) => row.type === 'expense')
+    .reduce((sum, row) => sum + Number(row.amount), 0);
+  const topFive = rows.filter((row) => row.type === 'expense').slice(0, 5);
 
-  return { month: bounds.month, year: bounds.year, total, topFive, transactions: rows };
+  return {
+    month: bounds.month,
+    year: bounds.year,
+    total: totalExpenses,
+    totalIncome,
+    totalExpenses,
+    balance: totalIncome - totalExpenses,
+    topFive,
+    transactions: rows
+  };
 }
 
 export function createCsv(transactions) {
   return stringify(transactions, {
     header: true,
-    columns: ['date', 'category', 'description', 'amount']
+    columns: ['date', 'type', 'category', 'description', 'amount']
   });
 }
 
@@ -34,7 +48,9 @@ export function createMonthlyPdf(report) {
   doc.on('data', (chunk) => chunks.push(chunk));
   doc.fontSize(20).text(`Relatório mensal - ${report.month}/${report.year}`);
   doc.moveDown();
-  doc.fontSize(14).text(`Total gasto: ${formatCurrency(report.total)}`);
+  doc.fontSize(14).text(`Receitas: ${formatCurrency(report.totalIncome)}`);
+  doc.fontSize(14).text(`Despesas: ${formatCurrency(report.totalExpenses)}`);
+  doc.fontSize(14).text(`Saldo: ${formatCurrency(report.balance)}`);
   doc.moveDown();
   doc.fontSize(16).text('Top 5 maiores gastos');
   doc.moveDown(0.5);

@@ -4,9 +4,9 @@
   "description": "Dashboard web do FinanceBot.",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "dev": "node scripts/build.mjs && node scripts/serve-dist.mjs",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/serve-dist.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.1",

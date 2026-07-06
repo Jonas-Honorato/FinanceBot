@@ -11,6 +11,7 @@ export async function listTransactions(req, res) {
   };
 
   if (req.query.category) addFilter('category = ?', req.query.category);
+  if (req.query.type) addFilter('type = ?', req.query.type);
   if (req.query.startDate) addFilter('date >= ?', req.query.startDate);
   if (req.query.endDate) addFilter('date <= ?', req.query.endDate);
   if (req.query.minAmount) addFilter('amount >= ?', req.query.minAmount);
@@ -24,7 +25,7 @@ export async function listTransactions(req, res) {
 
   const where = filters.length ? `AND ${filters.join(' AND ')}` : '';
   const { rows } = await query(
-    `SELECT id, amount, category, description, date, created_via, created_at, updated_at
+    `SELECT id, type, amount, category, description, date, created_via, created_at, updated_at
      FROM transactions
      WHERE user_id = $1 ${where}
      ORDER BY date DESC, created_at DESC
@@ -36,24 +37,24 @@ export async function listTransactions(req, res) {
 }
 
 export async function createTransaction(req, res) {
-  const { amount, category, description, date, createdVia = 'manual' } = req.body;
+  const { type = 'expense', amount, category, description, date, createdVia = 'manual' } = req.body;
   const { rows } = await query(
-    `INSERT INTO transactions (user_id, amount, category, description, date, created_via)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO transactions (user_id, type, amount, category, description, date, created_via)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [req.user.id, amount, category, description || null, date, createdVia]
+    [req.user.id, type, amount, category, description || null, date, createdVia]
   );
   res.status(201).json({ data: rows[0] });
 }
 
 export async function updateTransaction(req, res) {
-  const { amount, category, description, date } = req.body;
+  const { type = 'expense', amount, category, description, date } = req.body;
   const { rows } = await query(
     `UPDATE transactions
-     SET amount = $1, category = $2, description = $3, date = $4, updated_at = NOW()
-     WHERE id = $5 AND user_id = $6
+     SET type = $1, amount = $2, category = $3, description = $4, date = $5, updated_at = NOW()
+     WHERE id = $6 AND user_id = $7
      RETURNING *`,
-    [amount, category, description || null, date, req.params.id, req.user.id]
+    [type, amount, category, description || null, date, req.params.id, req.user.id]
   );
 
   if (!rows[0]) throw new ApiError(404, 'Transação não encontrada.');

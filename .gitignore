@@ -14,3 +14,4 @@ backend/.tmp-*/
 backend/*.log
 frontend/*.log
 frontend/.vite/
+frontend/.cache/

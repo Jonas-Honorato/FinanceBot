@@ -5,7 +5,7 @@ import { currency, dateBR } from '../utils/format.js';
 
 export function Reports() {
   const { data, loading } = useApi('/api/reports/monthly', []);
-  const trend = data ? Number(data.total) > 0 ? 'Há gastos registrados neste mês para análise.' : 'Ainda não há dados suficientes.' : '';
+  const trend = data ? Number(data.totalExpenses) > 0 ? `Saldo do mês: ${currency(data.balance)}.` : 'Ainda não há gastos suficientes para análise.' : '';
 
   return (
     <div className="space-y-4">
@@ -13,7 +13,7 @@ export function Reports() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Relatório mensal</h2>
-            <p className="text-sm text-slate-400">{loading ? 'Carregando...' : `Total de ${currency(data?.total || 0)} no período ${data?.month}/${data?.year}`}</p>
+            <p className="text-sm text-slate-400">{loading ? 'Carregando...' : `Receitas ${currency(data?.totalIncome || 0)} · Gastos ${currency(data?.totalExpenses || data?.total || 0)} · Saldo ${currency(data?.balance || 0)} no período ${data?.month}/${data?.year}`}</p>
           </div>
           <a className="flex items-center justify-center gap-2 rounded border border-line px-4 py-2 text-sm" href={downloadUrl(`/api/reports/monthly?format=pdf&token=${getToken()}`)} target="_blank" rel="noreferrer">
             <Download size={18} />
