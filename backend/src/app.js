@@ -19,6 +19,7 @@ import { openApiSpec } from './docs/openapi.js';
 export function createApp() {
   const app = express();
 
+  app.set('trust proxy', 1);
   app.use(helmet());
   app.use(cors({ origin: env.frontendUrl, credentials: true }));
   app.use(express.json());
