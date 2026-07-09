@@ -1,5 +1,6 @@
 import twilio from 'twilio';
 import { env } from '../../../config/env.js';
+import { normalizeWhatsappNumber } from '../../../utils/whatsappNumber.js';
 
 function isTwilioWebhook(req) {
   return Boolean(req.body.MessageSid || req.body.SmsMessageSid || req.body.WaId || req.body.ProfileName);
@@ -24,7 +25,7 @@ export const twilioProvider = {
   extractInboundMessage(req) {
     return {
       provider: 'twilio',
-      from: req.body.From,
+      from: normalizeWhatsappNumber(req.body.From),
       body: req.body.Body,
       messageId: req.body.MessageSid || req.body.SmsMessageSid || null,
       profileName: req.body.ProfileName || 'WhatsApp User',

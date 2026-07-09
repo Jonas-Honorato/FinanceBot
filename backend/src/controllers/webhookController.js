@@ -7,6 +7,7 @@ import { parseWhatsAppMessage } from '../services/whatsappParser.js';
 import { formatCurrency, sendWhatsAppMessage } from '../services/whatsappSender.js';
 import { buildWhatsAppWebhookResponse, getInboundWhatsAppProvider } from '../services/whatsapp/provider.js';
 import { formatDateBR, getMonthBounds, todayISO } from '../utils/date.js';
+import { normalizeWhatsappNumber } from '../utils/whatsappNumber.js';
 
 function sendWebhookReply(provider, res, payload) {
   const response = buildWhatsAppWebhookResponse(provider, payload);
@@ -17,12 +18,13 @@ function sendWebhookReply(provider, res, payload) {
 }
 
 async function findUserByWhatsapp(number) {
-  const { rows } = await query('SELECT id, name, whatsapp_number FROM users WHERE whatsapp_number = $1', [number]);
+  const { rows } = await query('SELECT id, name, whatsapp_number FROM users WHERE whatsapp_number = $1', [normalizeWhatsappNumber(number)]);
   return rows[0];
 }
 
 async function createWhatsappUser(number, name = 'WhatsApp User') {
-  const normalized = String(number).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  const whatsappNumber = normalizeWhatsappNumber(number);
+  const normalized = String(whatsappNumber).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   const email = `${normalized}@whatsapp.financebot.local`;
   const passwordHash = await bcrypt.hash(crypto.randomUUID(), 10);
 
@@ -32,10 +34,20 @@ async function createWhatsappUser(number, name = 'WhatsApp User') {
      ON CONFLICT (whatsapp_number)
      DO UPDATE SET whatsapp_number = EXCLUDED.whatsapp_number
      RETURNING id, name, email, whatsapp_number`,
-    [name || 'WhatsApp User', email, passwordHash, number]
+    [name || 'WhatsApp User', email, passwordHash, whatsappNumber]
   );
 
   return rows[0];
+}
+
+async function sendOutboundReply(inbound, to, reply) {
+  if (inbound.responseMode === 'twiml' || !to || !reply) return;
+
+  try {
+    await sendWhatsAppMessage(to, reply);
+  } catch (error) {
+    console.error(`[whatsapp:${inbound.provider}:send_error]`, error);
+  }
 }
 
 function buildHelpMessage() {
@@ -377,6 +389,10 @@ export async function handleWhatsAppWebhook(req, res) {
   const inbound = provider.extractInboundMessage(req);
   const { from, body } = inbound;
 
+  if (!from && !body) {
+    return sendWebhookReply(provider, res, { ok: true, status: 'ignored' });
+  }
+
   const user =
     (from ? await findUserByWhatsapp(from) : null) ||
     (inbound.shouldAutoCreateUser && from ? await createWhatsappUser(from, inbound.profileName) : null);
@@ -388,9 +404,7 @@ export async function handleWhatsAppWebhook(req, res) {
       [body || '', parsed, 'unknown_user']
     );
     const reply = 'Não encontrei um perfil vinculado a este WhatsApp. Cadastre seu número na dashboard.';
-    if (inbound.responseMode !== 'twiml' && from) {
-      await sendWhatsAppMessage(from, reply);
-    }
+    await sendOutboundReply(inbound, from, reply);
     return sendWebhookReply(provider, res, { ok: true, status: 'unknown_user', reply });
   }
 
@@ -451,9 +465,7 @@ export async function handleWhatsAppWebhook(req, res) {
     'INSERT INTO whatsapp_logs (user_id, raw_message, parsed_data, status) VALUES ($1, $2, $3, $4)',
     [user.id, body || '', parsed, status]
   );
-  if (inbound.responseMode !== 'twiml' && from) {
-    await sendWhatsAppMessage(from, reply);
-  }
+  await sendOutboundReply(inbound, from, reply);
 
   return sendWebhookReply(provider, res, { ok: true, status, reply });
 }

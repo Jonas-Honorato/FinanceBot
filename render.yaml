@@ -25,7 +25,15 @@ services:
       - key: PUBLIC_DASHBOARD_URL
         value: https://financebot-api.onrender.com
       - key: WHATSAPP_PROVIDER
-        value: mock
+        value: meta
+      - key: META_WHATSAPP_TOKEN
+        sync: false
+      - key: META_PHONE_NUMBER_ID
+        sync: false
+      - key: META_VERIFY_TOKEN
+        sync: false
+      - key: META_GRAPH_API_VERSION
+        value: v26.0
 
 databases:
   - name: financebot-db

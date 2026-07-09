@@ -1,3 +1,5 @@
+import { normalizeWhatsappNumber } from '../../../utils/whatsappNumber.js';
+
 export const mockProvider = {
   name: 'mock',
 
@@ -8,7 +10,7 @@ export const mockProvider = {
   extractInboundMessage(req) {
     return {
       provider: 'mock',
-      from: req.body.From || req.body.from || req.body.whatsappNumber,
+      from: normalizeWhatsappNumber(req.body.From || req.body.from || req.body.whatsappNumber),
       body: req.body.Body || req.body.body || req.body.message,
       messageId: req.body.messageId || null,
       profileName: req.body.profileName || 'WhatsApp User',

@@ -90,9 +90,9 @@ Consulte `.env.example`. As principais são:
 - `JWT_SECRET`: segredo para assinar tokens.
 - `FRONTEND_URL`: origem permitida no CORS.
 - `PUBLIC_DASHBOARD_URL`: link enviado no comando `relatório`.
-- `WHATSAPP_PROVIDER`: `mock`, `twilio` ou `meta`.
+- `WHATSAPP_PROVIDER`: `mock`, `twilio` ou `meta`. Use `mock` localmente sem credenciais e `meta` na beta real.
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`: credenciais Twilio.
-- `META_WHATSAPP_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`: credenciais e token de verificacao da Meta Cloud API.
+- `META_WHATSAPP_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`, `META_GRAPH_API_VERSION`: credenciais, token de verificacao e versao da Meta Cloud API.
 
 Com `WHATSAPP_PROVIDER=mock`, o backend imprime as respostas no console sem enviar mensagens reais.
 
@@ -100,7 +100,9 @@ Com `WHATSAPP_PROVIDER=mock`, o backend imprime as respostas no console sem envi
 
 O backend usa uma camada de provider para alternar entre Twilio, Meta Cloud API e mock local sem mudar a regra de negocio.
 
-Para validar com usuarios reais, prefira `WHATSAPP_PROVIDER=meta` com a WhatsApp Cloud API oficial da Meta. O Twilio continua util como sandbox rapido.
+Para validar com usuarios reais nesta beta, use `WHATSAPP_PROVIDER=meta` com a WhatsApp Cloud API oficial da Meta. O Twilio fica apenas como integracao legada/sandbox e nao e o caminho recomendado agora.
+
+Veja o passo a passo de Render + Meta em `docs/production-whatsapp.md`.
 
 ### Meta WhatsApp Cloud API
 
@@ -122,6 +124,7 @@ Verify token: o mesmo valor de META_VERIFY_TOKEN
 ```
 
 O endpoint `GET /api/webhook/whatsapp` faz a verificacao da Meta e `POST /api/webhook/whatsapp` recebe mensagens.
+As respostas sao enviadas pela Graph API usando `META_PHONE_NUMBER_ID`, `META_WHATSAPP_TOKEN` e `META_GRAPH_API_VERSION`.
 
 ### Twilio
 

@@ -21,5 +21,5 @@ export const env = {
   metaWhatsappToken: process.env.META_WHATSAPP_TOKEN || '',
   metaPhoneNumberId: process.env.META_PHONE_NUMBER_ID || '',
   metaVerifyToken: process.env.META_VERIFY_TOKEN || '',
-  metaGraphApiVersion: process.env.META_GRAPH_API_VERSION || 'v20.0'
+  metaGraphApiVersion: process.env.META_GRAPH_API_VERSION || 'v26.0'
 };

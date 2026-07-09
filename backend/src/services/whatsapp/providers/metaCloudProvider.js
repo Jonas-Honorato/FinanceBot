@@ -1,20 +1,15 @@
 import { env } from '../../../config/env.js';
+import { normalizeWhatsappNumber, whatsappNumberToMetaRecipient } from '../../../utils/whatsappNumber.js';
 
 function firstMetaValue(req) {
   return req.body?.entry?.[0]?.changes?.[0]?.value || null;
-}
-
-function normalizeMetaPhone(value) {
-  if (!value) return null;
-  const digits = String(value).replace(/\D/g, '');
-  return digits ? `whatsapp:+${digits}` : null;
 }
 
 export const metaCloudProvider = {
   name: 'meta',
 
   canHandleInbound(req) {
-    return Boolean(firstMetaValue(req)?.messages?.[0]);
+    return Boolean(firstMetaValue(req));
   },
 
   extractInboundMessage(req) {
@@ -25,7 +20,7 @@ export const metaCloudProvider = {
 
     return {
       provider: 'meta',
-      from: normalizeMetaPhone(message.from),
+      from: normalizeWhatsappNumber(message.from),
       body: text,
       messageId: message.id || null,
       profileName: contact.profile?.name || 'WhatsApp User',
@@ -40,11 +35,14 @@ export const metaCloudProvider = {
 
   async sendMessage(to, body) {
     if (!env.metaWhatsappToken || !env.metaPhoneNumberId) {
-      console.log(`[whatsapp:meta:mock] to=${to} body=${body}`);
-      return { mocked: true, provider: 'meta', to, body };
+      throw new Error('Meta WhatsApp Cloud API is not configured. Set META_WHATSAPP_TOKEN and META_PHONE_NUMBER_ID.');
     }
 
-    const recipient = String(to).replace(/^whatsapp:/, '').replace(/\D/g, '');
+    const recipient = whatsappNumberToMetaRecipient(to);
+    if (!recipient) {
+      throw new Error('Invalid WhatsApp recipient number.');
+    }
+
     const response = await fetch(
       `https://graph.facebook.com/${env.metaGraphApiVersion}/${env.metaPhoneNumberId}/messages`,
       {

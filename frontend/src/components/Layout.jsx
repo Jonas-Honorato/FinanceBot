@@ -1,13 +1,14 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, FileText, LogOut, Moon, PieChart, ReceiptText, Target } from 'lucide-react';
+import { BarChart3, FileText, LogOut, Moon, PieChart, ReceiptText, Settings, Target } from 'lucide-react';
 import { clearToken } from '../services/api.js';
 
 const nav = [
   { to: '/', label: 'Overview', icon: PieChart },
-  { to: '/transactions', label: 'Transações', icon: ReceiptText },
+  { to: '/transactions', label: 'Transacoes', icon: ReceiptText },
   { to: '/budgets', label: 'Limites', icon: Target },
   { to: '/goals', label: 'Objetivos', icon: Target },
-  { to: '/reports', label: 'Relatórios', icon: FileText }
+  { to: '/reports', label: 'Relatorios', icon: FileText },
+  { to: '/account', label: 'Conta', icon: Settings }
 ];
 
 export function Layout() {
@@ -47,7 +48,7 @@ export function Layout() {
       <div className="lg:pl-64">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-line bg-ink/95 px-4 backdrop-blur md:px-8">
           <div>
-            <p className="text-sm text-slate-400">Organização financeira pessoal</p>
+            <p className="text-sm text-slate-400">Organizacao financeira pessoal</p>
             <h1 className="text-xl font-semibold">Dashboard</h1>
           </div>
           <div className="flex items-center gap-2">

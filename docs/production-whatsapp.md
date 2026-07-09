@@ -1,103 +1,114 @@
-# FinanceBot API gratuita/teste no WhatsApp
+# FinanceBot beta real com Meta WhatsApp Cloud API
 
-Este modo publica somente o backend da API, sem depender da dashboard web.
+Este guia prepara uma beta com custo minimo usando Render + Meta WhatsApp Cloud API oficial.
+O ambiente local deve continuar com `WHATSAPP_PROVIDER=mock` quando nao houver credenciais reais.
 
-## Arquitetura de teste gratuita
+## Arquitetura da beta
 
-- Render Web Service no plano Free: roda `backend`, mas pode hibernar quando ficar sem acessos.
-- Render PostgreSQL no plano Free: guarda usuarios, transacoes, metas e logs durante o periodo gratuito/teste.
-- Provedor WhatsApp configuravel: `mock`, `twilio` ou `meta`.
+- Render Web Service: roda o backend Express.
+- Render PostgreSQL: guarda usuarios, transacoes, metas e logs.
+- Meta WhatsApp Cloud API: recebe mensagens no webhook e envia respostas por Graph API.
 
-Este modo e suficiente para validar o bot sem pagar agora. Depois de hibernar,
-a primeira mensagem pode demorar ou falhar porque o servico precisa acordar.
+No plano Free do Render, o servico pode hibernar. A primeira mensagem apos um periodo sem uso pode demorar ou precisar ser reenviada.
 
-## Deploy no Render
+## 1. Deploy no Render
 
-1. Suba este repositorio para o GitHub.
-2. No Render, crie um novo **Blueprint** apontando para o repositorio.
-3. O arquivo `render.yaml` cria:
-   - `financebot-api`
-   - `financebot-db`
-4. Confirme que ambos estao usando o plano **Free**.
-5. Aguarde o deploy concluir.
-6. Copie a URL publica do servico, por exemplo:
+1. Suba o repositorio para o GitHub.
+2. No Render, crie um novo Blueprint apontando para o repositorio.
+3. Use o `render.yaml` deste projeto.
+4. Confirme o Web Service `financebot-api` e o banco `financebot-db`.
+5. Configure as variaveis abaixo no Web Service.
 
-```text
-https://financebot-api.onrender.com
-```
-
-## Provedor recomendado
-
-Para usuarios reais, prefira `WHATSAPP_PROVIDER=meta` com a WhatsApp Cloud API oficial da Meta.
-O Twilio continua util para sandbox rapido, mas adiciona uma camada comercial e tecnica a mais.
-
-Variaveis da Meta:
+Variaveis obrigatorias no Render:
 
 ```text
+NODE_ENV=production
+DB_PROVIDER=postgres
+DATABASE_URL=<preenchido pelo Render a partir do banco>
+DATABASE_SSL=false
+JWT_SECRET=<gerado pelo Render ou valor forte>
+FRONTEND_URL=https://SUA-URL-RENDER
+PUBLIC_DASHBOARD_URL=https://SUA-URL-RENDER
 WHATSAPP_PROVIDER=meta
-META_WHATSAPP_TOKEN=...
-META_PHONE_NUMBER_ID=...
-META_VERIFY_TOKEN=...
-META_GRAPH_API_VERSION=v20.0
+META_WHATSAPP_TOKEN=<token permanente ou temporario da Meta>
+META_PHONE_NUMBER_ID=<Phone number ID da Meta>
+META_VERIFY_TOKEN=<texto secreto criado por voce>
+META_GRAPH_API_VERSION=v26.0
 ```
 
-No painel da Meta, configure:
+Se a Meta mostrar uma versao Graph API mais recente no painel, ajuste `META_GRAPH_API_VERSION` para essa versao.
+
+## 2. Configurar a Meta Cloud API
+
+No app da Meta:
+
+1. Adicione o produto WhatsApp.
+2. Copie o `Phone number ID` e coloque em `META_PHONE_NUMBER_ID`.
+3. Gere/copiei o token de acesso e coloque em `META_WHATSAPP_TOKEN`.
+4. Crie um texto secreto para verificacao e coloque o mesmo valor em `META_VERIFY_TOKEN`.
+5. Em Webhooks, configure:
 
 ```text
 Callback URL: https://SUA-URL-RENDER/api/webhook/whatsapp
 Verify token: mesmo valor de META_VERIFY_TOKEN
 ```
 
+6. Assine o campo de mensagens do WhatsApp (`messages`).
+
 O endpoint `GET /api/webhook/whatsapp` responde ao desafio de verificacao da Meta.
+O endpoint `POST /api/webhook/whatsapp` recebe mensagens e envia a resposta por Cloud API.
 
-## Configurar a Twilio para sandbox
+## 3. Como os numeros sao salvos
 
-No WhatsApp Sandbox da Twilio, configure:
+O FinanceBot normaliza numeros de WhatsApp para:
 
 ```text
-When a message comes in: https://SUA-URL-RENDER/api/webhook/whatsapp
-Method: POST
+whatsapp:+55DDDNUMERO
 ```
 
-Depois entre no sandbox pelo WhatsApp enviando o codigo `join ...` exibido pela Twilio.
-
-## Comandos do bot
+Exemplos equivalentes:
 
 ```text
-Pizza 38,50
-Gastei R$45 no supermercado
+11999999999
++5511999999999
+55 11 99999-9999
+whatsapp:+5511999999999
+```
+
+Todos viram:
+
+```text
+whatsapp:+5511999999999
+```
+
+Isso evita usuarios duplicados quando a pessoa se cadastra pelo painel e depois envia mensagem pela Meta.
+
+## 4. Teste rapido
+
+Depois do deploy:
+
+1. Abra `https://SUA-URL-RENDER/health` e confirme `{"status":"ok"}`.
+2. No painel da Meta, envie uma mensagem de teste para o numero do WhatsApp Cloud API.
+3. Envie comandos como:
+
+```text
 ajuda
-comandos
-ultimos
-apagar ultimo
-corrigir ultimo alimentacao
+sushi 25
 resumo
-resumo da semana
-resumo de junho
-hoje
-periodo
-quando comecou
-categoria alimentacao
-meta 1000 alimentacao
-quero juntar 3000 em 6 meses
 minhas metas
 quanto posso gastar essa semana
-relatorio
 ```
 
-## Observacoes
+## 5. O que nao esta habilitado nesta etapa
 
-- O comando `ajuda`, `comandos` ou `menu` lista os comandos principais no WhatsApp.
-- O comando `ultimos` mostra os 5 lançamentos mais recentes.
-- O comando `apagar ultimo` remove o lançamento mais recente.
-- O comando `corrigir ultimo alimentacao` muda a categoria do lançamento mais recente.
-- O comando `relatorio` responde com um resumo textual no WhatsApp.
-- O comando `resumo da semana` ou `resumo de junho` mostra receitas, gastos e saldo do periodo.
-- O comando `periodo` ou `quando comecou` informa a janela mensal usada para contar os gastos.
-- O comando `quero juntar 3000 em 6 meses` cria uma meta financeira com prazo.
-- O comando `minhas metas` ou `quanto falta para minha meta` mostra o progresso das metas financeiras.
-- O comando `quanto posso gastar essa semana` calcula um limite considerando receitas, gastos e metas financeiras.
-- A resposta ao WhatsApp usa TwiML direto no webhook, entao nao precisa de `TWILIO_AUTH_TOKEN` para responder mensagens recebidas.
-- O plano gratuito do Render pode hibernar depois de alguns minutos sem trafego.
-- O Postgres gratuito do Render e indicado para teste e pode expirar; para dados permanentes, migre depois para um banco gratuito externo ou plano pago.
-- Para uso 24h real, evite planos que hibernam o servico.
+- Lembretes automaticos.
+- Templates pagos ou mensagens iniciadas pela empresa fora da janela permitida.
+- Pagamentos.
+- Landing page publica.
+- Twilio para a beta real.
+
+## Referencias oficiais
+
+- Meta Cloud API: https://developers.facebook.com/docs/whatsapp/cloud-api
+- Webhooks da Cloud API: https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks
+- Envio de mensagens: https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages

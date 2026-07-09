@@ -6,6 +6,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
 import { requireAuth } from './middlewares/auth.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import { accountRoutes } from './routes/accountRoutes.js';
 import { authRoutes } from './routes/authRoutes.js';
 import { budgetsRoutes } from './routes/budgetsRoutes.js';
 import { reportsRoutes } from './routes/reportsRoutes.js';
@@ -37,6 +38,7 @@ export function createApp() {
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
   app.use('/api/auth', authRoutes);
   app.use('/api/webhook', webhookRoutes);
+  app.use('/api/account', requireAuth, accountRoutes);
   app.use('/api/transactions', requireAuth, transactionsRoutes);
   app.use('/api/summary', requireAuth, summaryRoutes);
   app.use('/api/budgets', requireAuth, budgetsRoutes);

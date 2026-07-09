@@ -8,6 +8,7 @@ coverage/
 .idea/
 npm-debug.log*
 *.log
+.npm-cache/
 backend/uploads/
 backend/data/
 backend/.tmp-*/

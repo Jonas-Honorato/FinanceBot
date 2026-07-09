@@ -1,35 +1,83 @@
-import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { transformAsync } from '@babel/core';
+import transformReactJsxModule from '@babel/plugin-transform-react-jsx';
+import commonjs from '@rollup/plugin-commonjs';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
+import autoprefixer from 'autoprefixer';
+import postcss from 'postcss';
+import { rollup } from 'rollup';
+import tailwindcss from 'tailwindcss';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const sourceBinary = path.join(root, 'node_modules', '@esbuild', 'win32-x64', 'esbuild.exe');
-const cacheDir = path.join(root, '.cache');
-const localBinary = path.join(cacheDir, 'esbuild.exe');
 const distDir = path.join(root, 'dist');
 const assetsDir = path.join(distDir, 'assets');
+const cssOutputPath = path.join(assetsDir, 'main.css');
+const reactJsxTransform = transformReactJsxModule.default ?? transformReactJsxModule;
 
-async function ensureLocalEsbuild() {
-  await fs.mkdir(cacheDir, { recursive: true });
-  await fs.copyFile(sourceBinary, localBinary);
-  return localBinary;
+const cssImports = new Set();
+
+function cssImportPlugin() {
+  return {
+    name: 'financebot-css-imports',
+    resolveId(source, importer) {
+      if (!source.endsWith('.css')) return null;
+      return path.resolve(importer ? path.dirname(importer) : root, source);
+    },
+    load(id) {
+      if (!id.endsWith('.css')) return null;
+      cssImports.add(id);
+      return 'export default undefined;';
+    }
+  };
 }
 
-function run(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: root, stdio: 'inherit' });
-    child.on('error', reject);
-    child.on('exit', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${path.basename(command)} exited with code ${code}`));
-    });
+function jsxPlugin() {
+  return {
+    name: 'financebot-jsx',
+    async transform(code, id) {
+      if (!/\.[cm]?[jt]sx?$/.test(id)) return null;
+
+      const replacedCode = code.replace(/\bprocess\.env\.NODE_ENV\b/g, JSON.stringify('production'));
+      const shouldTransformJsx = id.endsWith('.jsx') || id.startsWith(path.join(root, 'src'));
+
+      if (!shouldTransformJsx) {
+        return replacedCode === code ? null : { code: replacedCode, map: null };
+      }
+
+      const result = await transformAsync(replacedCode, {
+        babelrc: false,
+        configFile: false,
+        filename: id,
+        plugins: [[reactJsxTransform, { runtime: 'automatic' }]],
+        sourceMaps: false
+      });
+
+      return result?.code ? { code: result.code, map: null } : null;
+    }
+  };
+}
+
+async function writeCss() {
+  if (cssImports.size === 0) return;
+
+  const css = await Promise.all(
+    [...cssImports].map((filePath) => fs.readFile(filePath, 'utf8'))
+  );
+  const result = await postcss([
+    tailwindcss({ config: path.join(root, 'tailwind.config.js') }),
+    autoprefixer()
+  ]).process(css.join('\n'), {
+    from: path.join(root, 'src', 'styles.css'),
+    to: cssOutputPath
   });
+
+  await fs.writeFile(cssOutputPath, result.css);
 }
 
 async function writeIndex() {
-  const cssPath = path.join(assetsDir, 'main.css');
-  const hasCss = await fs.stat(cssPath).then(() => true).catch(() => false);
+  const hasCss = await fs.stat(cssOutputPath).then(() => true).catch(() => false);
   const stylesheet = hasCss ? '    <link rel="stylesheet" href="/assets/main.css" />\n' : '';
 
   const html = `<!doctype html>
@@ -49,21 +97,31 @@ ${stylesheet}    <title>FinanceBot</title>
   await fs.writeFile(path.join(distDir, 'index.html'), html);
 }
 
+await fs.rm(distDir, { recursive: true, force: true });
 await fs.mkdir(assetsDir, { recursive: true });
 
-const esbuild = await ensureLocalEsbuild();
-await run(esbuild, [
-  'src/main.jsx',
-  '--bundle',
-  '--format=esm',
-  '--outdir=dist/assets',
-  '--entry-names=main',
-  '--asset-names=[name]',
-  '--loader:.js=jsx',
-  '--loader:.jsx=jsx',
-  '--minify',
-  '--define:process.env.NODE_ENV="production"'
-]);
+const bundle = await rollup({
+  input: path.join(root, 'src', 'main.jsx'),
+  plugins: [
+    cssImportPlugin(),
+    jsxPlugin(),
+    nodeResolve({
+      browser: true,
+      extensions: ['.mjs', '.js', '.jsx', '.json']
+    }),
+    commonjs()
+  ],
+  treeshake: true
+});
+
+await bundle.write({
+  file: path.join(assetsDir, 'main.js'),
+  format: 'esm',
+  sourcemap: false
+});
+await bundle.close();
+
+await writeCss();
 await writeIndex();
 
 console.log('Frontend build completed without esbuild service mode.');

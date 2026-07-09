@@ -18,6 +18,11 @@ export const openApiSpec = {
       get: { summary: 'Verifica o webhook da WhatsApp Cloud API da Meta' },
       post: { summary: 'Recebe mensagens do WhatsApp via Twilio, Meta Cloud API ou mock local' }
     },
+    '/api/account': {
+      get: { summary: 'Consulta dados da conta autenticada', security: [{ bearerAuth: [] }] },
+      put: { summary: 'Atualiza nome, e-mail e WhatsApp da conta', security: [{ bearerAuth: [] }] },
+      delete: { summary: 'Exclui a conta autenticada e seus dados financeiros', security: [{ bearerAuth: [] }] }
+    },
     '/api/transactions': {
       get: { summary: 'Lista transações com filtros', security: [{ bearerAuth: [] }] },
       post: { summary: 'Cria transação manual', security: [{ bearerAuth: [] }] }

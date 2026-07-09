@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout.jsx';
+import { Account } from './pages/Account.jsx';
 import { Login } from './pages/Login.jsx';
 import { Overview } from './pages/Overview.jsx';
 import { Transactions } from './pages/Transactions.jsx';
@@ -29,6 +30,7 @@ export function App() {
         <Route path="budgets" element={<Budgets />} />
         <Route path="goals" element={<Goals />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="account" element={<Account />} />
       </Route>
     </Routes>
   );
