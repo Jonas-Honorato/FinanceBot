@@ -14,6 +14,7 @@ import { summaryRoutes } from './routes/summaryRoutes.js';
 import { transactionsRoutes } from './routes/transactionsRoutes.js';
 import { webhookRoutes } from './routes/webhookRoutes.js';
 import { goalsRoutes } from './routes/goalsRoutes.js';
+import { legalRoutes } from './routes/legalRoutes.js';
 import { openApiSpec } from './docs/openapi.js';
 
 export function createApp() {
@@ -28,6 +29,7 @@ export function createApp() {
 
   app.get('/', (_req, res) => res.redirect('/docs'));
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+  app.use('/', legalRoutes);
   app.get('/api', (_req, res) =>
     res.json({
       name: 'FinanceBot API',
