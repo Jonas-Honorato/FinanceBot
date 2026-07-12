@@ -47,6 +47,15 @@ test('extracts Meta recipient digits from WhatsApp number', () => {
   assert.equal(whatsappNumberToMetaRecipient('whatsapp:+5511999999999'), '5511999999999');
 });
 
+test('adds the ninth digit to a legacy Brazilian mobile wa_id', () => {
+  assert.equal(normalizeWhatsappNumber('556198392309'), 'whatsapp:+5561998392309');
+  assert.equal(whatsappNumberToMetaRecipient('556198392309'), '5561998392309');
+});
+
+test('does not add the ninth digit to a Brazilian landline', () => {
+  assert.equal(normalizeWhatsappNumber('556132123456'), 'whatsapp:+556132123456');
+});
+
 test('returns null for empty values', () => {
   assert.equal(normalizeWhatsappNumber(''), null);
   assert.equal(normalizeWhatsappNumber(null), null);

@@ -18,6 +18,15 @@ export function normalizeWhatsappNumber(value) {
     digits = `${DEFAULT_COUNTRY_CODE}${digits}`;
   }
 
+  const isLegacyBrazilianMobile =
+    digits.startsWith(DEFAULT_COUNTRY_CODE) &&
+    digits.length === 12 &&
+    /^[6-9]$/.test(digits[4]);
+
+  if (isLegacyBrazilianMobile) {
+    digits = `${digits.slice(0, 4)}9${digits.slice(4)}`;
+  }
+
   return `${WHATSAPP_PREFIX}+${digits}`;
 }
 
