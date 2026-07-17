@@ -29,6 +29,25 @@ export const metaCloudProvider = {
     };
   },
 
+  extractDeliveryStatuses(req) {
+    const statuses = firstMetaValue(req)?.statuses;
+    if (!Array.isArray(statuses)) return [];
+
+    return statuses.map((status) => ({
+      messageId: status.id || null,
+      status: status.status || 'unknown',
+      timestamp: status.timestamp || null,
+      errors: Array.isArray(status.errors)
+        ? status.errors.map((error) => ({
+            code: error.code || null,
+            title: error.title || null,
+            message: error.message || null,
+            details: error.error_data?.details || null
+          }))
+        : []
+    }));
+  },
+
   buildWebhookResponse(payload) {
     return { type: 'json', body: payload };
   },

@@ -44,10 +44,34 @@ async function sendOutboundReply(inbound, to, reply) {
   if (inbound.responseMode === 'twiml' || !to || !reply) return;
 
   try {
-    await sendWhatsAppMessage(to, reply);
+    const result = await sendWhatsAppMessage(to, reply);
+    const messageIds = Array.isArray(result?.messages)
+      ? result.messages.map((message) => message.id).filter(Boolean)
+      : [];
+    console.info(
+      `[whatsapp:${inbound.provider}:send_accepted]`,
+      JSON.stringify({ messageIds })
+    );
+    return result;
   } catch (error) {
-    console.error(`[whatsapp:${inbound.provider}:send_error]`, error);
+    console.error(
+      `[whatsapp:${inbound.provider}:send_error]`,
+      error instanceof Error ? error.message : String(error)
+    );
   }
+}
+
+function logDeliveryStatuses(provider, req) {
+  const statuses = provider.extractDeliveryStatuses?.(req) || [];
+
+  for (const delivery of statuses) {
+    console.info(
+      `[whatsapp:${provider.name}:delivery_status]`,
+      JSON.stringify(delivery)
+    );
+  }
+
+  return statuses;
 }
 
 function buildHelpMessage() {
@@ -390,7 +414,11 @@ export async function handleWhatsAppWebhook(req, res) {
   const { from, body } = inbound;
 
   if (!from && !body) {
-    return sendWebhookReply(provider, res, { ok: true, status: 'ignored' });
+    const deliveryStatuses = logDeliveryStatuses(provider, req);
+    return sendWebhookReply(provider, res, {
+      ok: true,
+      status: deliveryStatuses.length ? 'delivery_status' : 'ignored'
+    });
   }
 
   const user =
